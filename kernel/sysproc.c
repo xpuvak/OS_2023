@@ -91,3 +91,13 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+uint64
+sys_square(int){
+  int number;
+
+  argint(0, &number);
+
+  return (number * number);
+
+}
