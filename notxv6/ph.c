@@ -16,7 +16,7 @@ struct entry {
 struct entry *table[NBUCKET];
 int keys[NKEYS];
 int nthread = 1;
-pthread_mutex lock[NBUCKET];
+pthread_mutex_t lock[NBUCKET];
 
 
 double
