@@ -1,0 +1,1194 @@
+.dir-locals.el:1:((c-mode
+.dir-locals.el:2:  (indent-tabs-mode . nil)
+.dir-locals.el:3:  (c-file-style . "bsd")
+.dir-locals.el:4:  (c-basic-offset . 2)))
+.gdbinit.tmpl-riscv:4:symbol-file kernel/kernel
+.gdbinit.tmpl-riscv:5:set disassemble-next-line auto
+.gdbinit.tmpl-riscv:6:set riscv use-compressed-breakpoints yes
+.gitignore:24:/lab-*.json
+LICENSE:3:Copyright (c) 2006-2019 Frans Kaashoek, Robert Morris, Russ Cox,
+Makefile:4:# grade script (e.g., grade-lab-util).
+Makefile:6:-include conf/lab.mk
+Makefile:63:# riscv64-unknown-elf- or riscv64-linux-gnu-
+Makefile:69:TOOLPREFIX := $(shell if riscv64-unknown-elf-objdump -i 2>&1 | grep 'elf64-big' >/dev/null 2>&1; \
+Makefile:70:	then echo 'riscv64-unknown-elf-'; \
+Makefile:71:	elif riscv64-linux-gnu-objdump -i 2>&1 | grep 'elf64-big' >/dev/null 2>&1; \
+Makefile:72:	then echo 'riscv64-linux-gnu-'; \
+Makefile:73:	elif riscv64-unknown-linux-gnu-objdump -i 2>&1 | grep 'elf64-big' >/dev/null 2>&1; \
+Makefile:74:	then echo 'riscv64-unknown-linux-gnu-'; \
+Makefile:81:QEMU = qemu-system-riscv64
+Makefile:89:CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb -gdwarf-2
+Makefile:92:LABUPPER = $(shell echo $(LAB) | tr a-z A-Z)
+Makefile:93:XCFLAGS += -DSOL_$(LABUPPER) -DLAB_$(LABUPPER)
+Makefile:97:CFLAGS += -MD
+Makefile:98:CFLAGS += -mcmodel=medany
+Makefile:99:CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
+Makefile:100:CFLAGS += -I.
+Makefile:101:CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
+Makefile:104:CFLAGS += -DNET_TESTS_PORT=$(SERVERPORT)
+Makefile:108:CFLAGS += -DKCSAN
+Makefile:109:KCSANFLAG = -fsanitize=thread -fno-inline
+Makefile:113:ifneq ($(shell $(CC) -dumpspecs 2>/dev/null | grep -e '[^f]no-pie'),)
+Makefile:114:CFLAGS += -fno-pie -no-pie
+Makefile:116:ifneq ($(shell $(CC) -dumpspecs 2>/dev/null | grep -e '[^f]nopie'),)
+Makefile:117:CFLAGS += -fno-pie -nopie
+Makefile:120:LDFLAGS = -z max-page-size=4096
+Makefile:123:	$(LD) $(LDFLAGS) -T $K/kernel.ld -o $K/kernel $(OBJS) $(OBJS_KCSAN)
+Makefile:124:	$(OBJDUMP) -S $K/kernel > $K/kernel.asm
+Makefile:125:	$(OBJDUMP) -t $K/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $K/kernel.sym
+Makefile:130:	$(CC) $(CFLAGS) $(EXTRAFLAG) -c -o $@ $<
+Makefile:134:	$(CC) $(CFLAGS) -march=rv64g -nostdinc -I. -Ikernel -c $U/initcode.S -o $U/initcode.o
+Makefile:135:	$(LD) $(LDFLAGS) -N -e start -Ttext 0 -o $U/initcode.out $U/initcode.o
+Makefile:136:	$(OBJCOPY) -S -O binary $U/initcode.out $U/initcode
+Makefile:137:	$(OBJDUMP) -S $U/initcode.o > $U/initcode.asm
+Makefile:149:	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^
+Makefile:150:	$(OBJDUMP) -S $@ > $*.asm
+Makefile:151:	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
+Makefile:157:	$(CC) $(CFLAGS) -c -o $U/usys.o $U/usys.S
+Makefile:160:	# forktest has less library code linked in - needs to be small
+Makefile:162:	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_forktest $U/forktest.o $U/ulib.o $U/usys.o
+Makefile:163:	$(OBJDUMP) -S $U/_forktest > $U/forktest.asm
+Makefile:166:	gcc $(XCFLAGS) -Werror -Wall -I. -o mkfs/mkfs mkfs/mkfs.c
+Makefile:171:# http://www.gnu.org/software/make/manual/html_node/Chained-Rules.html
+Makefile:221:	$(CC) $(CFLAGS) -c -o $U/uthread_switch.o $U/uthread_switch.S
+Makefile:224:	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_uthread $U/uthread.o $U/uthread_switch.o $(ULIB)
+Makefile:225:	$(OBJDUMP) -S $U/_uthread > $U/uthread.asm
+Makefile:228:	gcc -o ph -g -O2 $(XCFLAGS) notxv6/ph.c -pthread
+Makefile:231:	gcc -o barrier -g -O2 $(XCFLAGS) notxv6/barrier.c -pthread
+Makefile:266:-include kernel/*.d user/*.d
+Makefile:269:	rm -rf *.tex *.dvi *.idx *.aux *.log *.ind *.ilg *.dSYM *.zip \
+Makefile:277:GDBPORT = $(shell expr `id -u` % 5000 + 25000)
+Makefile:279:QEMUGDB = $(shell if $(QEMU) -help | grep -q '^-gdb'; \
+Makefile:280:	then echo "-gdb tcp::$(GDBPORT)"; \
+Makefile:281:	else echo "-s -p $(GDBPORT)"; fi)
+Makefile:289:FWDPORT = $(shell expr `id -u` % 5000 + 25999)
+Makefile:291:QEMUOPTS = -machine virt -bios none -kernel $K/kernel -m 128M -smp $(CPUS) -nographic
+Makefile:292:QEMUOPTS += -global virtio-mmio.force-legacy=false
+Makefile:293:QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
+Makefile:294:QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+Makefile:297:QEMUOPTS += -netdev user,id=net0,hostfwd=udp::$(FWDPORT)-:2000 -object filter-dump,id=net0,netdev=net0,file=packets.pcap
+Makefile:298:QEMUOPTS += -device e1000,netdev=net0,bus=pcie.0
+Makefile:304:.gdbinit: .gdbinit.tmpl-riscv
+Makefile:307:qemu-gdb: $K/kernel .gdbinit fs.img
+Makefile:309:	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB)
+Makefile:313:SERVERPORT = $(shell expr `id -u` % 5000 + 25099)
+Makefile:327:GRADEFLAGS += -v
+Makefile:330:print-gdbport:
+Makefile:337:	./grade-lab-$(LAB) $(GRADEFLAGS)
+Makefile:343:submit-check:
+Makefile:344:	@if ! test -d .git; then \
+Makefile:348:	@if test "$$(git symbolic-ref HEAD)" != refs/heads/$(LAB); then \
+Makefile:350:		read -p "You are not on the $(LAB) branch.  Hand-in the current branch? [y/N] " r; \
+Makefile:353:	@if ! git diff-files --quiet || ! git diff-index --quiet --cached HEAD; then \
+Makefile:354:		git status -s; \
+Makefile:359:	@if test -n "`git status -s`"; then \
+Makefile:360:		git status -s; \
+Makefile:361:		read -p "Untracked files will not be handed in.  Continue? [y/N] " r; \
+Makefile:365:zipball: clean submit-check
+Makefile:366:	git archive --verbose --format zip --output lab.zip HEAD
+Makefile:368:.PHONY: zipball clean grade submit-check
+README:1:xv6 is a re-implementation of Dennis Ritchie's and Ken Thompson's Unix
+README:3:but is implemented for a modern RISC-V multiprocessor using ANSI C.
+README:8:to Peer Communications; ISBN: 1-57398-013-7; 1st edition (June 14,
+README:10:pointers to on-line resources for v6.
+README:17:Takahiro Aoyagi, Silas Boyd-Wickizer, Anton Burtsev, carlclone, Ian
+README:35:Copyright 2006-2022 Frans Kaashoek, Robert Morris, and Russ Cox.
+README:46:You will need a RISC-V "newlib" tool chain from
+README:47:https://github.com/riscv/riscv-gnu-toolchain, and qemu compiled for
+README:48:riscv64-softmmu.  Once they are installed, and in your shell
+grade-lab-thread:22:@test(5, "answers-thread.txt")
+grade-lab-thread:25:    check_answers("answers-thread.txt")
+grade-lab-thread:32:    out = result.stdout.decode("utf-8")
+grade-lab-thread:43:    out = result.stdout.decode("utf-8")
+grade-lab-thread:47:    out = result.stdout.decode("utf-8")
+grade-lab-thread:61:    out = result.stdout.decode("utf-8")
+gradelib.py:65:            if time.time() - start > 0.1:
+gradelib.py:66:                print("(%.1fs)" % (time.time() - start), end=' ')
+gradelib.py:96:            (name, TOTAL - PART_TOTAL, POSSIBLE - PART_POSSIBLE))
+gradelib.py:117:    parser = OptionParser(usage="usage: %prog [-v] [filters...]")
+gradelib.py:118:    parser.add_option("-v", "--verbose", action="store_true",
+gradelib.py:120:    parser.add_option("--color", choices=["never", "always", "auto"],
+gradelib.py:122:    parser.add_option("--results", help="results file path")
+gradelib.py:191:        for offset in range(-2, 3):
+gradelib.py:194:        show.update(n for n in range(len(lines) - 5, len(lines)))
+gradelib.py:197:    last = -1
+gradelib.py:207:    if last != len(lines) - 1:
+gradelib.py:260:    if os.path.exists("obj/fs/clean-fs.img"):
+gradelib.py:261:        shutil.copyfile("obj/fs/clean-fs.img", "obj/fs/fs.img")
+gradelib.py:312:        cmd = ("make", "-s", "--no-print-directory") + make_args
+gradelib.py:325:            p = Popen(["make", "-s", "--no-print-directory", "print-gdbport"],
+gradelib.py:342:        self.output = self.outbytes.decode("utf-8", "replace")
+gradelib.py:351:            buf = buf.encode('utf-8')
+gradelib.py:394:            m = re.search(r"\$([^#]*)#[0-9a-zA-Z]{2}", self.__buf)
+gradelib.py:437:        """Run a QEMU-based test.  monitors should functions that will
+gradelib.py:451:        self.qemu = QEMU(target_base + "-gdb", *make_args)
+gradelib.py:506:                timeleft = deadline - time.time()
+gradelib.py:529:            kw.setdefault("make_args", []).append("QEMUEXTRA+=-snapshot")
+gradelib.py:530:        self.run_qemu(target_base="run-%s" % binary, *monitors, **kw)
+gradelib.py:546:    test fails, copy the output to path.test-name."""
+gradelib.py:591:                line = line.decode("utf-8", "replace")
+gradelib.py:616:                if re.match(terminate_match, context.buf.decode('utf-8', 'replace')):
+kernel/bio.c:47:    b->next = bcache.head.next;
+kernel/bio.c:48:    b->prev = &bcache.head;
+kernel/bio.c:49:    initsleeplock(&b->lock, "buffer");
+kernel/bio.c:50:    bcache.head.next->prev = b;
+kernel/bio.c:66:  for(b = bcache.head.next; b != &bcache.head; b = b->next){
+kernel/bio.c:67:    if(b->dev == dev && b->blockno == blockno){
+kernel/bio.c:68:      b->refcnt++;
+kernel/bio.c:70:      acquiresleep(&b->lock);
+kernel/bio.c:77:  for(b = bcache.head.prev; b != &bcache.head; b = b->prev){
+kernel/bio.c:78:    if(b->refcnt == 0) {
+kernel/bio.c:79:      b->dev = dev;
+kernel/bio.c:80:      b->blockno = blockno;
+kernel/bio.c:81:      b->valid = 0;
+kernel/bio.c:82:      b->refcnt = 1;
+kernel/bio.c:84:      acquiresleep(&b->lock);
+kernel/bio.c:98:  if(!b->valid) {
+kernel/bio.c:100:    b->valid = 1;
+kernel/bio.c:109:  if(!holdingsleep(&b->lock))
+kernel/bio.c:115:// Move to the head of the most-recently-used list.
+kernel/bio.c:119:  if(!holdingsleep(&b->lock))
+kernel/bio.c:122:  releasesleep(&b->lock);
+kernel/bio.c:125:  b->refcnt--;
+kernel/bio.c:126:  if (b->refcnt == 0) {
+kernel/bio.c:128:    b->next->prev = b->prev;
+kernel/bio.c:129:    b->prev->next = b->next;
+kernel/bio.c:130:    b->next = bcache.head.next;
+kernel/bio.c:131:    b->prev = &bcache.head;
+kernel/bio.c:132:    bcache.head.next->prev = b;
+kernel/bio.c:142:  b->refcnt++;
+kernel/bio.c:149:  b->refcnt--;
+kernel/console.c:5://   newline -- end of line
+kernel/console.c:6://   control-h -- backspace
+kernel/console.c:7://   control-u -- kill line
+kernel/console.c:8://   control-d -- end of file
+kernel/console.c:9://   control-p -- print process list
+kernel/console.c:26:#define C(x)  ((x)-'@')  // Control-x
+kernel/console.c:65:    if(either_copyin(&c, user_src, src+i, 1) == -1)
+kernel/console.c:94:        return -1;
+kernel/console.c:101:    if(c == C('D')){  // end-of-file
+kernel/console.c:104:        // caller gets a 0-byte result.
+kernel/console.c:105:        cons.r--;
+kernel/console.c:110:    // copy the input byte to the user-space buffer.
+kernel/console.c:112:    if(either_copyout(user_dst, dst, &cbuf, 1) == -1)
+kernel/console.c:116:    --n;
+kernel/console.c:120:      // the user-level read().
+kernel/console.c:126:  return target - n;
+kernel/console.c:146:          cons.buf[(cons.e-1) % INPUT_BUF_SIZE] != '\n'){
+kernel/console.c:147:      cons.e--;
+kernel/console.c:154:      cons.e--;
+kernel/console.c:159:    if(c != 0 && cons.e-cons.r < INPUT_BUF_SIZE){
+kernel/console.c:168:      if(c == '\n' || c == C('D') || cons.e-cons.r == INPUT_BUF_SIZE){
+kernel/console.c:169:        // wake up consoleread() if a whole line (or end-of-file)
+kernel/defs.h:188:// number of elements in fixed-size array
+kernel/entry.S:1:        # qemu -kernel loads the kernel at 0x80000000
+kernel/entry.S:10:        # with a 4096-byte stack per CPU.
+kernel/exec.c:38:    return -1;
+kernel/exec.c:76:  uint64 oldsz = p->sz;
+kernel/exec.c:86:  uvmclear(pagetable, sz-2*PGSIZE);
+kernel/exec.c:88:  stackbase = sp - PGSIZE;
+kernel/exec.c:94:    sp -= strlen(argv[argc]) + 1;
+kernel/exec.c:95:    sp -= sp % 16; // riscv sp must be 16-byte aligned
+kernel/exec.c:105:  sp -= (argc+1) * sizeof(uint64);
+kernel/exec.c:106:  sp -= sp % 16;
+kernel/exec.c:115:  p->trapframe->a1 = sp;
+kernel/exec.c:121:  safestrcpy(p->name, last, sizeof(p->name));
+kernel/exec.c:124:  oldpagetable = p->pagetable;
+kernel/exec.c:125:  p->pagetable = pagetable;
+kernel/exec.c:126:  p->sz = sz;
+kernel/exec.c:127:  p->trapframe->epc = elf.entry;  // initial program counter = main
+kernel/exec.c:128:  p->trapframe->sp = sp; // initial stack pointer
+kernel/exec.c:140:  return -1;
+kernel/exec.c:144:// va must be page-aligned
+kernel/exec.c:146:// Returns 0 on success, -1 on failure.
+kernel/exec.c:157:    if(sz - i < PGSIZE)
+kernel/exec.c:158:      n = sz - i;
+kernel/exec.c:162:      return -1;
+kernel/file.c:36:    if(f->ref == 0){
+kernel/file.c:37:      f->ref = 1;
+kernel/file.c:51:  if(f->ref < 1)
+kernel/file.c:53:  f->ref++;
+kernel/file.c:65:  if(f->ref < 1)
+kernel/file.c:67:  if(--f->ref > 0){
+kernel/file.c:72:  f->ref = 0;
+kernel/file.c:73:  f->type = FD_NONE;
+kernel/file.c:93:  if(f->type == FD_INODE || f->type == FD_DEVICE){
+kernel/file.c:94:    ilock(f->ip);
+kernel/file.c:95:    stati(f->ip, &st);
+kernel/file.c:96:    iunlock(f->ip);
+kernel/file.c:97:    if(copyout(p->pagetable, addr, (char *)&st, sizeof(st)) < 0)
+kernel/file.c:98:      return -1;
+kernel/file.c:101:  return -1;
+kernel/file.c:111:  if(f->readable == 0)
+kernel/file.c:112:    return -1;
+kernel/file.c:114:  if(f->type == FD_PIPE){
+kernel/file.c:115:    r = piperead(f->pipe, addr, n);
+kernel/file.c:116:  } else if(f->type == FD_DEVICE){
+kernel/file.c:117:    if(f->major < 0 || f->major >= NDEV || !devsw[f->major].read)
+kernel/file.c:118:      return -1;
+kernel/file.c:119:    r = devsw[f->major].read(1, addr, n);
+kernel/file.c:120:  } else if(f->type == FD_INODE){
+kernel/file.c:121:    ilock(f->ip);
+kernel/file.c:122:    if((r = readi(f->ip, 1, addr, f->off, n)) > 0)
+kernel/file.c:123:      f->off += r;
+kernel/file.c:124:    iunlock(f->ip);
+kernel/file.c:139:  if(f->writable == 0)
+kernel/file.c:140:    return -1;
+kernel/file.c:142:  if(f->type == FD_PIPE){
+kernel/file.c:143:    ret = pipewrite(f->pipe, addr, n);
+kernel/file.c:144:  } else if(f->type == FD_DEVICE){
+kernel/file.c:145:    if(f->major < 0 || f->major >= NDEV || !devsw[f->major].write)
+kernel/file.c:146:      return -1;
+kernel/file.c:147:    ret = devsw[f->major].write(1, addr, n);
+kernel/file.c:148:  } else if(f->type == FD_INODE){
+kernel/file.c:151:    // i-node, indirect block, allocation blocks,
+kernel/file.c:152:    // and 2 blocks of slop for non-aligned writes.
+kernel/file.c:155:    int max = ((MAXOPBLOCKS-1-1-2) / 2) * BSIZE;
+kernel/file.c:158:      int n1 = n - i;
+kernel/file.c:163:      ilock(f->ip);
+kernel/file.c:164:      if ((r = writei(f->ip, 1, addr + i, f->off, n1)) > 0)
+kernel/file.c:165:        f->off += r;
+kernel/file.c:166:      iunlock(f->ip);
+kernel/file.c:175:    ret = (i == n ? n : -1);
+kernel/file.h:16:// in-memory copy of an inode
+kernel/fs.c:3://   + Log: crash recovery for multi-step updates.
+kernel/fs.c:8:// This file contains the low-level file system manipulation
+kernel/fs.c:9:// routines.  The (higher-level) system call implementations
+kernel/fs.c:36:  memmove(sb, bp->data, sizeof(*sb));
+kernel/fs.c:56:  memset(bp->data, 0, BSIZE);
+kernel/fs.c:76:      if((bp->data[bi/8] & m) == 0){  // Is block free?
+kernel/fs.c:77:        bp->data[bi/8] |= m;  // Mark block in use.
+kernel/fs.c:100:  if((bp->data[bi/8] & m) == 0)
+kernel/fs.c:102:  bp->data[bi/8] &= ~m;
+kernel/fs.c:118:// The kernel keeps a table of in-use inodes in memory
+kernel/fs.c:120:// to inodes used by multiple processes. The in-memory
+kernel/fs.c:121:// inodes include book-keeping information that is
+kernel/fs.c:122:// not stored on disk: ip->ref and ip->valid.
+kernel/fs.c:124:// An inode and its in-memory representation go through a
+kernel/fs.c:129://   is non-zero. ialloc() allocates, and iput() frees if
+kernel/fs.c:133://   is free if ip->ref is zero. Otherwise ip->ref tracks
+kernel/fs.c:134://   the number of in-memory pointers to the entry (open
+kernel/fs.c:140://   table entry is only correct when ip->valid is 1.
+kernel/fs.c:142://   the disk and sets ip->valid, while iput() clears
+kernel/fs.c:143://   ip->valid if ip->ref has fallen to zero.
+kernel/fs.c:152://   ... examine and modify ip->xxx ...
+kernel/fs.c:157:// get a long-term reference to an inode (as for an open file)
+kernel/fs.c:160:// pathname lookup. iget() increments ip->ref so that the inode
+kernel/fs.c:165:// multi-step atomic operations.
+kernel/fs.c:167:// The itable.lock spin-lock protects the allocation of itable
+kernel/fs.c:168:// entries. Since ip->ref indicates whether an entry is free,
+kernel/fs.c:169:// and ip->dev and ip->inum indicate which i-node an entry
+kernel/fs.c:172:// An ip->lock sleep-lock protects all ip-> fields other than ref,
+kernel/fs.c:173:// dev, and inum.  One must hold ip->lock in order to
+kernel/fs.c:174:// read or write that inode's ip->valid, ip->size, ip->type, &c.
+kernel/fs.c:207:    dip = (struct dinode*)bp->data + inum%IPB;
+kernel/fs.c:208:    if(dip->type == 0){  // a free inode
+kernel/fs.c:210:      dip->type = type;
+kernel/fs.c:221:// Copy a modified in-memory inode to disk.
+kernel/fs.c:222:// Must be called after every change to an ip->xxx field
+kernel/fs.c:224:// Caller must hold ip->lock.
+kernel/fs.c:231:  bp = bread(ip->dev, IBLOCK(ip->inum, sb));
+kernel/fs.c:232:  dip = (struct dinode*)bp->data + ip->inum%IPB;
+kernel/fs.c:233:  dip->type = ip->type;
+kernel/fs.c:234:  dip->major = ip->major;
+kernel/fs.c:235:  dip->minor = ip->minor;
+kernel/fs.c:236:  dip->nlink = ip->nlink;
+kernel/fs.c:237:  dip->size = ip->size;
+kernel/fs.c:238:  memmove(dip->addrs, ip->addrs, sizeof(ip->addrs));
+kernel/fs.c:244:// and return the in-memory copy. Does not lock
+kernel/fs.c:256:    if(ip->ref > 0 && ip->dev == dev && ip->inum == inum){
+kernel/fs.c:257:      ip->ref++;
+kernel/fs.c:261:    if(empty == 0 && ip->ref == 0)    // Remember empty slot.
+kernel/fs.c:270:  ip->dev = dev;
+kernel/fs.c:271:  ip->inum = inum;
+kernel/fs.c:272:  ip->ref = 1;
+kernel/fs.c:273:  ip->valid = 0;
+kernel/fs.c:285:  ip->ref++;
+kernel/fs.c:298:  if(ip == 0 || ip->ref < 1)
+kernel/fs.c:301:  acquiresleep(&ip->lock);
+kernel/fs.c:303:  if(ip->valid == 0){
+kernel/fs.c:304:    bp = bread(ip->dev, IBLOCK(ip->inum, sb));
+kernel/fs.c:305:    dip = (struct dinode*)bp->data + ip->inum%IPB;
+kernel/fs.c:306:    ip->type = dip->type;
+kernel/fs.c:307:    ip->major = dip->major;
+kernel/fs.c:308:    ip->minor = dip->minor;
+kernel/fs.c:309:    ip->nlink = dip->nlink;
+kernel/fs.c:310:    ip->size = dip->size;
+kernel/fs.c:311:    memmove(ip->addrs, dip->addrs, sizeof(ip->addrs));
+kernel/fs.c:313:    ip->valid = 1;
+kernel/fs.c:314:    if(ip->type == 0)
+kernel/fs.c:323:  if(ip == 0 || !holdingsleep(&ip->lock) || ip->ref < 1)
+kernel/fs.c:326:  releasesleep(&ip->lock);
+kernel/fs.c:329:// Drop a reference to an in-memory inode.
+kernel/fs.c:341:  if(ip->ref == 1 && ip->valid && ip->nlink == 0){
+kernel/fs.c:344:    // ip->ref == 1 means no other process can have ip locked,
+kernel/fs.c:346:    acquiresleep(&ip->lock);
+kernel/fs.c:351:    ip->type = 0;
+kernel/fs.c:353:    ip->valid = 0;
+kernel/fs.c:355:    releasesleep(&ip->lock);
+kernel/fs.c:360:  ip->ref--;
+kernel/fs.c:376:// are listed in ip->addrs[].  The next NINDIRECT blocks are
+kernel/fs.c:377:// listed in block ip->addrs[NDIRECT].
+kernel/fs.c:389:    if((addr = ip->addrs[bn]) == 0){
+kernel/fs.c:390:      addr = balloc(ip->dev);
+kernel/fs.c:393:      ip->addrs[bn] = addr;
+kernel/fs.c:397:  bn -= NDIRECT;
+kernel/fs.c:401:    if((addr = ip->addrs[NDIRECT]) == 0){
+kernel/fs.c:402:      addr = balloc(ip->dev);
+kernel/fs.c:405:      ip->addrs[NDIRECT] = addr;
+kernel/fs.c:407:    bp = bread(ip->dev, addr);
+kernel/fs.c:408:    a = (uint*)bp->data;
+kernel/fs.c:410:      addr = balloc(ip->dev);
+kernel/fs.c:424:// Caller must hold ip->lock.
+kernel/fs.c:433:    if(ip->addrs[i]){
+kernel/fs.c:434:      bfree(ip->dev, ip->addrs[i]);
+kernel/fs.c:435:      ip->addrs[i] = 0;
+kernel/fs.c:439:  if(ip->addrs[NDIRECT]){
+kernel/fs.c:440:    bp = bread(ip->dev, ip->addrs[NDIRECT]);
+kernel/fs.c:441:    a = (uint*)bp->data;
+kernel/fs.c:444:        bfree(ip->dev, a[j]);
+kernel/fs.c:447:    bfree(ip->dev, ip->addrs[NDIRECT]);
+kernel/fs.c:448:    ip->addrs[NDIRECT] = 0;
+kernel/fs.c:451:  ip->size = 0;
+kernel/fs.c:456:// Caller must hold ip->lock.
+kernel/fs.c:460:  st->dev = ip->dev;
+kernel/fs.c:461:  st->ino = ip->inum;
+kernel/fs.c:462:  st->type = ip->type;
+kernel/fs.c:463:  st->nlink = ip->nlink;
+kernel/fs.c:464:  st->size = ip->size;
+kernel/fs.c:468:// Caller must hold ip->lock.
+kernel/fs.c:477:  if(off > ip->size || off + n < off)
+kernel/fs.c:479:  if(off + n > ip->size)
+kernel/fs.c:480:    n = ip->size - off;
+kernel/fs.c:486:    bp = bread(ip->dev, addr);
+kernel/fs.c:487:    m = min(n - tot, BSIZE - off%BSIZE);
+kernel/fs.c:488:    if(either_copyout(user_dst, dst, bp->data + (off % BSIZE), m) == -1) {
+kernel/fs.c:490:      tot = -1;
+kernel/fs.c:499:// Caller must hold ip->lock.
+kernel/fs.c:511:  if(off > ip->size || off + n < off)
+kernel/fs.c:512:    return -1;
+kernel/fs.c:514:    return -1;
+kernel/fs.c:520:    bp = bread(ip->dev, addr);
+kernel/fs.c:521:    m = min(n - tot, BSIZE - off%BSIZE);
+kernel/fs.c:522:    if(either_copyin(bp->data + (off % BSIZE), user_src, src, m) == -1) {
+kernel/fs.c:530:  if(off > ip->size)
+kernel/fs.c:531:    ip->size = off;
+kernel/fs.c:533:  // write the i-node back to disk even if the size didn't change
+kernel/fs.c:535:  // block to ip->addrs[].
+kernel/fs.c:557:  if(dp->type != T_DIR)
+kernel/fs.c:560:  for(off = 0; off < dp->size; off += sizeof(de)){
+kernel/fs.c:570:      return iget(dp->dev, inum);
+kernel/fs.c:578:// Returns 0 on success, -1 on failure (e.g. out of disk blocks).
+kernel/fs.c:589:    return -1;
+kernel/fs.c:593:  for(off = 0; off < dp->size; off += sizeof(de)){
+kernel/fs.c:603:    return -1;
+kernel/fs.c:635:  len = path - s;
+kernel/fs.c:659:    ip = idup(myproc()->cwd);
+kernel/fs.c:663:    if(ip->type != T_DIR){
+kernel/fs.h:1:// On-disk file system format.
+kernel/fs.h:5:#define ROOTINO  1   // root i-number
+kernel/fs.h:31:// On-disk inode structure
+kernel/kalloc.c:2:// kernel stacks, page-table pages,
+kernel/kalloc.c:3:// and pipe buffers. Allocates whole 4096-byte pages.
+kernel/kalloc.c:60:  r->next = kmem.freelist;
+kernel/kalloc.c:65:// Allocate one 4096-byte page of physical memory.
+kernel/kalloc.c:76:    kmem.freelist = r->next;
+kernel/kernel.ld:8:   * where qemu's -kernel jumps.
+kernel/kernel.ld:18:    ASSERT(. - _trampoline == 0x1000, "error: trampoline larger than one page");
+kernel/kernelvec.S:14:        addi sp, sp, -256
+kernel/kernelvec.S:91:        # machine-mode timer interrupt.
+kernel/log.c:20:// the count of in-progress FS system calls and returns.
+kernel/log.c:24:// The log is a physical re-do log containing disk blocks.
+kernel/log.c:25:// The on-disk log format:
+kernel/log.c:33:// Contents of the header block, used for both the on-disk header block
+kernel/log.c:61:  log.start = sb->logstart;
+kernel/log.c:62:  log.size = sb->nlog;
+kernel/log.c:76:    memmove(dbuf->data, lbuf->data, BSIZE);  // copy block to dst
+kernel/log.c:85:// Read the log header from disk into the in-memory log header
+kernel/log.c:90:  struct logheader *lh = (struct logheader *) (buf->data);
+kernel/log.c:92:  log.lh.n = lh->n;
+kernel/log.c:94:    log.lh.block[i] = lh->block[i];
+kernel/log.c:99:// Write in-memory log header to disk.
+kernel/log.c:106:  struct logheader *hb = (struct logheader *) (buf->data);
+kernel/log.c:108:  hb->n = log.lh.n;
+kernel/log.c:110:    hb->block[i] = log.lh.block[i];
+kernel/log.c:152:  log.outstanding -= 1;
+kernel/log.c:186:    memmove(to->data, from->data, BSIZE);
+kernel/log.c:198:    write_head();    // Write header to disk -- the real commit
+kernel/log.c:205:// Caller has modified b->data and is done with the buffer.
+kernel/log.c:211://   modify bp->data[]
+kernel/log.c:220:  if (log.lh.n >= LOGSIZE || log.lh.n >= log.size - 1)
+kernel/log.c:226:    if (log.lh.block[i] == b->blockno)   // log absorption
+kernel/log.c:229:  log.lh.block[i] = b->blockno;
+kernel/memlayout.h:3:// qemu -machine virt is set up like this,
+kernel/memlayout.h:6:// 00001000 -- boot ROM, provided by qemu
+kernel/memlayout.h:7:// 02000000 -- CLINT
+kernel/memlayout.h:8:// 0C000000 -- PLIC
+kernel/memlayout.h:9:// 10000000 -- uart0 
+kernel/memlayout.h:10:// 10001000 -- virtio disk 
+kernel/memlayout.h:11:// 80000000 -- boot ROM jumps here in machine mode
+kernel/memlayout.h:12://             -kernel loads the kernel here
+kernel/memlayout.h:16:// 80000000 -- entry.S, then kernel text and data
+kernel/memlayout.h:17:// end -- start of kernel page allocation area
+kernel/memlayout.h:18:// PHYSTOP -- end RAM used by the kernel
+kernel/memlayout.h:33:// qemu puts platform-level interrupt controller (PLIC) here.
+kernel/memlayout.h:49:#define TRAMPOLINE (MAXVA - PGSIZE)
+kernel/memlayout.h:53:#define KSTACK(p) (TRAMPOLINE - ((p)+1)* 2*PGSIZE)
+kernel/memlayout.h:59://   fixed-size stack
+kernel/memlayout.h:62://   TRAPFRAME (p->trapframe, used by the trampoline)
+kernel/memlayout.h:64:#define TRAPFRAME (TRAMPOLINE - PGSIZE)
+kernel/param.h:5:#define NINODE       50  // maximum number of active i-nodes
+kernel/param.h:10:#define LOGSIZE      (MAXOPBLOCKS*3)  // max data blocks in on-disk log
+kernel/pipe.c:33:  pi->readopen = 1;
+kernel/pipe.c:34:  pi->writeopen = 1;
+kernel/pipe.c:35:  pi->nwrite = 0;
+kernel/pipe.c:36:  pi->nread = 0;
+kernel/pipe.c:37:  initlock(&pi->lock, "pipe");
+kernel/pipe.c:38:  (*f0)->type = FD_PIPE;
+kernel/pipe.c:39:  (*f0)->readable = 1;
+kernel/pipe.c:40:  (*f0)->writable = 0;
+kernel/pipe.c:41:  (*f0)->pipe = pi;
+kernel/pipe.c:42:  (*f1)->type = FD_PIPE;
+kernel/pipe.c:43:  (*f1)->readable = 0;
+kernel/pipe.c:44:  (*f1)->writable = 1;
+kernel/pipe.c:45:  (*f1)->pipe = pi;
+kernel/pipe.c:55:  return -1;
+kernel/pipe.c:61:  acquire(&pi->lock);
+kernel/pipe.c:63:    pi->writeopen = 0;
+kernel/pipe.c:64:    wakeup(&pi->nread);
+kernel/pipe.c:66:    pi->readopen = 0;
+kernel/pipe.c:67:    wakeup(&pi->nwrite);
+kernel/pipe.c:69:  if(pi->readopen == 0 && pi->writeopen == 0){
+kernel/pipe.c:70:    release(&pi->lock);
+kernel/pipe.c:73:    release(&pi->lock);
+kernel/pipe.c:82:  acquire(&pi->lock);
+kernel/pipe.c:84:    if(pi->readopen == 0 || killed(pr)){
+kernel/pipe.c:85:      release(&pi->lock);
+kernel/pipe.c:86:      return -1;
+kernel/pipe.c:88:    if(pi->nwrite == pi->nread + PIPESIZE){ //DOC: pipewrite-full
+kernel/pipe.c:89:      wakeup(&pi->nread);
+kernel/pipe.c:90:      sleep(&pi->nwrite, &pi->lock);
+kernel/pipe.c:93:      if(copyin(pr->pagetable, &ch, addr + i, 1) == -1)
+kernel/pipe.c:95:      pi->data[pi->nwrite++ % PIPESIZE] = ch;
+kernel/pipe.c:99:  wakeup(&pi->nread);
+kernel/pipe.c:100:  release(&pi->lock);
+kernel/pipe.c:112:  acquire(&pi->lock);
+kernel/pipe.c:113:  while(pi->nread == pi->nwrite && pi->writeopen){  //DOC: pipe-empty
+kernel/pipe.c:115:      release(&pi->lock);
+kernel/pipe.c:116:      return -1;
+kernel/pipe.c:118:    sleep(&pi->nread, &pi->lock); //DOC: piperead-sleep
+kernel/pipe.c:120:  for(i = 0; i < n; i++){  //DOC: piperead-copy
+kernel/pipe.c:121:    if(pi->nread == pi->nwrite)
+kernel/pipe.c:123:    ch = pi->data[pi->nread++ % PIPESIZE];
+kernel/pipe.c:124:    if(copyout(pr->pagetable, addr + i, &ch, 1) == -1)
+kernel/pipe.c:127:  wakeup(&pi->nwrite);  //DOC: piperead-wakeup
+kernel/pipe.c:128:  release(&pi->lock);
+kernel/plic.c:14:  // set desired IRQ priorities non-zero (otherwise disabled).
+kernel/plic.c:24:  // set enable bits for this hart's S-mode
+kernel/plic.c:28:  // set this hart's S-mode priority threshold to 0.
+kernel/printf.c:2:// formatted console output -- printf, panic.
+kernel/printf.c:36:    x = -xx;
+kernel/printf.c:46:    buf[i++] = '-';
+kernel/printf.c:48:  while(--i >= 0)
+kernel/printf.c:59:    consputc(digits[x >> (sizeof(uint64) * 8 - 4)]);
+kernel/proc.c:25:// memory model when using p->parent.
+kernel/proc.c:26:// must be acquired before any p->lock.
+kernel/proc.c:41:    uint64 va = KSTACK((int) (p - proc));
+kernel/proc.c:55:      initlock(&p->lock, "proc");
+kernel/proc.c:56:      p->state = UNUSED;
+kernel/proc.c:57:      p->kstack = KSTACK((int) (p - proc));
+kernel/proc.c:87:  struct proc *p = c->proc;
+kernel/proc.c:107:// and return with p->lock held.
+kernel/proc.c:115:    acquire(&p->lock);
+kernel/proc.c:116:    if(p->state == UNUSED) {
+kernel/proc.c:119:      release(&p->lock);
+kernel/proc.c:125:  p->pid = allocpid();
+kernel/proc.c:126:  p->state = USED;
+kernel/proc.c:129:  if((p->trapframe = (struct trapframe *)kalloc()) == 0){
+kernel/proc.c:131:    release(&p->lock);
+kernel/proc.c:136:  p->pagetable = proc_pagetable(p);
+kernel/proc.c:137:  if(p->pagetable == 0){
+kernel/proc.c:139:    release(&p->lock);
+kernel/proc.c:145:  memset(&p->context, 0, sizeof(p->context));
+kernel/proc.c:146:  p->context.ra = (uint64)forkret;
+kernel/proc.c:147:  p->context.sp = p->kstack + PGSIZE;
+kernel/proc.c:154:// p->lock must be held.
+kernel/proc.c:158:  if(p->trapframe)
+kernel/proc.c:159:    kfree((void*)p->trapframe);
+kernel/proc.c:160:  p->trapframe = 0;
+kernel/proc.c:161:  if(p->pagetable)
+kernel/proc.c:162:    proc_freepagetable(p->pagetable, p->sz);
+kernel/proc.c:163:  p->pagetable = 0;
+kernel/proc.c:164:  p->sz = 0;
+kernel/proc.c:165:  p->pid = 0;
+kernel/proc.c:166:  p->parent = 0;
+kernel/proc.c:167:  p->name[0] = 0;
+kernel/proc.c:168:  p->chan = 0;
+kernel/proc.c:169:  p->killed = 0;
+kernel/proc.c:170:  p->xstate = 0;
+kernel/proc.c:171:  p->state = UNUSED;
+kernel/proc.c:199:              (uint64)(p->trapframe), PTE_R | PTE_W) < 0){
+kernel/proc.c:220:// od -t xC ../user/initcode
+kernel/proc.c:242:  uvmfirst(p->pagetable, initcode, sizeof(initcode));
+kernel/proc.c:243:  p->sz = PGSIZE;
+kernel/proc.c:246:  p->trapframe->epc = 0;      // user program counter
+kernel/proc.c:247:  p->trapframe->sp = PGSIZE;  // user stack pointer
+kernel/proc.c:249:  safestrcpy(p->name, "initcode", sizeof(p->name));
+kernel/proc.c:250:  p->cwd = namei("/");
+kernel/proc.c:252:  p->state = RUNNABLE;
+kernel/proc.c:254:  release(&p->lock);
+kernel/proc.c:258:// Return 0 on success, -1 on failure.
+kernel/proc.c:265:  sz = p->sz;
+kernel/proc.c:267:    if((sz = uvmalloc(p->pagetable, sz, sz + n, PTE_W)) == 0) {
+kernel/proc.c:268:      return -1;
+kernel/proc.c:271:    sz = uvmdealloc(p->pagetable, sz, sz + n);
+kernel/proc.c:273:  p->sz = sz;
+kernel/proc.c:288:    return -1;
+kernel/proc.c:292:  if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
+kernel/proc.c:294:    release(&np->lock);
+kernel/proc.c:295:    return -1;
+kernel/proc.c:297:  np->sz = p->sz;
+kernel/proc.c:300:  *(np->trapframe) = *(p->trapframe);
+kernel/proc.c:303:  np->trapframe->a0 = 0;
+kernel/proc.c:307:    if(p->ofile[i])
+kernel/proc.c:308:      np->ofile[i] = filedup(p->ofile[i]);
+kernel/proc.c:309:  np->cwd = idup(p->cwd);
+kernel/proc.c:311:  safestrcpy(np->name, p->name, sizeof(p->name));
+kernel/proc.c:313:  pid = np->pid;
+kernel/proc.c:315:  release(&np->lock);
+kernel/proc.c:318:  np->parent = p;
+kernel/proc.c:321:  acquire(&np->lock);
+kernel/proc.c:322:  np->state = RUNNABLE;
+kernel/proc.c:323:  release(&np->lock);
+kernel/proc.c:336:    if(pp->parent == p){
+kernel/proc.c:337:      pp->parent = initproc;
+kernel/proc.c:356:    if(p->ofile[fd]){
+kernel/proc.c:357:      struct file *f = p->ofile[fd];
+kernel/proc.c:359:      p->ofile[fd] = 0;
+kernel/proc.c:364:  iput(p->cwd);
+kernel/proc.c:366:  p->cwd = 0;
+kernel/proc.c:374:  wakeup(p->parent);
+kernel/proc.c:376:  acquire(&p->lock);
+kernel/proc.c:378:  p->xstate = status;
+kernel/proc.c:379:  p->state = ZOMBIE;
+kernel/proc.c:389:// Return -1 if this process has no children.
+kernel/proc.c:403:      if(pp->parent == p){
+kernel/proc.c:405:        acquire(&pp->lock);
+kernel/proc.c:408:        if(pp->state == ZOMBIE){
+kernel/proc.c:410:          pid = pp->pid;
+kernel/proc.c:411:          if(addr != 0 && copyout(p->pagetable, addr, (char *)&pp->xstate,
+kernel/proc.c:412:                                  sizeof(pp->xstate)) < 0) {
+kernel/proc.c:413:            release(&pp->lock);
+kernel/proc.c:415:            return -1;
+kernel/proc.c:418:          release(&pp->lock);
+kernel/proc.c:422:        release(&pp->lock);
+kernel/proc.c:429:      return -1;
+kernel/proc.c:433:    sleep(p, &wait_lock);  //DOC: wait-sleep
+kernel/proc.c:437:// Per-CPU process scheduler.
+kernel/proc.c:440://  - choose a process to run.
+kernel/proc.c:441://  - swtch to start running that process.
+kernel/proc.c:442://  - eventually that process transfers control
+kernel/proc.c:450:  c->proc = 0;
+kernel/proc.c:458:      acquire(&p->lock);
+kernel/proc.c:459:      if(p->state == RUNNABLE) {
+kernel/proc.c:463:        p->state = RUNNING;
+kernel/proc.c:464:        c->proc = p;
+kernel/proc.c:465:        swtch(&c->context, &p->context);
+kernel/proc.c:468:        // It should have changed its p->state before coming back.
+kernel/proc.c:469:        c->proc = 0;
+kernel/proc.c:471:      release(&p->lock);
+kernel/proc.c:476:// Switch to scheduler.  Must hold only p->lock
+kernel/proc.c:477:// and have changed proc->state. Saves and restores
+kernel/proc.c:480:// be proc->intena and proc->noff, but that would
+kernel/proc.c:489:  if(!holding(&p->lock))
+kernel/proc.c:490:    panic("sched p->lock");
+kernel/proc.c:491:  if(mycpu()->noff != 1)
+kernel/proc.c:493:  if(p->state == RUNNING)
+kernel/proc.c:498:  intena = mycpu()->intena;
+kernel/proc.c:499:  swtch(&p->context, &mycpu()->context);
+kernel/proc.c:500:  mycpu()->intena = intena;
+kernel/proc.c:508:  acquire(&p->lock);
+kernel/proc.c:509:  p->state = RUNNABLE;
+kernel/proc.c:511:  release(&p->lock);
+kernel/proc.c:521:  // Still holding p->lock from scheduler.
+kernel/proc.c:522:  release(&myproc()->lock);
+kernel/proc.c:545:  // Must acquire p->lock in order to
+kernel/proc.c:546:  // change p->state and then call sched.
+kernel/proc.c:547:  // Once we hold p->lock, we can be
+kernel/proc.c:549:  // (wakeup locks p->lock),
+kernel/proc.c:552:  acquire(&p->lock);  //DOC: sleeplock1
+kernel/proc.c:556:  p->chan = chan;
+kernel/proc.c:557:  p->state = SLEEPING;
+kernel/proc.c:562:  p->chan = 0;
+kernel/proc.c:565:  release(&p->lock);
+kernel/proc.c:570:// Must be called without any p->lock.
+kernel/proc.c:578:      acquire(&p->lock);
+kernel/proc.c:579:      if(p->state == SLEEPING && p->chan == chan) {
+kernel/proc.c:580:        p->state = RUNNABLE;
+kernel/proc.c:582:      release(&p->lock);
+kernel/proc.c:596:    acquire(&p->lock);
+kernel/proc.c:597:    if(p->pid == pid){
+kernel/proc.c:598:      p->killed = 1;
+kernel/proc.c:599:      if(p->state == SLEEPING){
+kernel/proc.c:601:        p->state = RUNNABLE;
+kernel/proc.c:603:      release(&p->lock);
+kernel/proc.c:606:    release(&p->lock);
+kernel/proc.c:608:  return -1;
+kernel/proc.c:614:  acquire(&p->lock);
+kernel/proc.c:615:  p->killed = 1;
+kernel/proc.c:616:  release(&p->lock);
+kernel/proc.c:624:  acquire(&p->lock);
+kernel/proc.c:625:  k = p->killed;
+kernel/proc.c:626:  release(&p->lock);
+kernel/proc.c:632:// Returns 0 on success, -1 on error.
+kernel/proc.c:638:    return copyout(p->pagetable, dst, src, len);
+kernel/proc.c:647:// Returns 0 on success, -1 on error.
+kernel/proc.c:653:    return copyin(p->pagetable, dst, src, len);
+kernel/proc.c:679:    if(p->state == UNUSED)
+kernel/proc.c:681:    if(p->state >= 0 && p->state < NELEM(states) && states[p->state])
+kernel/proc.c:682:      state = states[p->state];
+kernel/proc.c:685:    printf("%d %s %s", p->pid, state, p->name);
+kernel/proc.h:6:  // callee-saved
+kernel/proc.h:21:// Per-CPU state.
+kernel/proc.h:31:// per-process data for the trap handling code in trampoline.S.
+kernel/proc.h:40:// the trapframe includes callee-saved user registers like s0-s11 because the
+kernel/proc.h:41:// return-to-user path via usertrapret() doesn't return through
+kernel/proc.h:84:// Per-process state
+kernel/proc.h:88:  // p->lock must be held when using these:
+kernel/proc.h:90:  void *chan;                  // If non-zero, sleeping on chan
+kernel/proc.h:91:  int killed;                  // If non-zero, have been killed
+kernel/proc.h:98:  // these are private to the process, so p->lock need not be held.
+kernel/ramdisk.c:2:// ramdisk that uses the disk image loaded by qemu -initrd fs.img
+kernel/ramdisk.c:25:  if(!holdingsleep(&b->lock))
+kernel/ramdisk.c:27:  if((b->flags & (B_VALID|B_DIRTY)) == B_VALID)
+kernel/ramdisk.c:30:  if(b->blockno >= FSSIZE)
+kernel/ramdisk.c:33:  uint64 diskaddr = b->blockno * BSIZE;
+kernel/ramdisk.c:36:  if(b->flags & B_DIRTY){
+kernel/ramdisk.c:38:    memmove(addr, b->data, BSIZE);
+kernel/ramdisk.c:39:    b->flags &= ~B_DIRTY;
+kernel/ramdisk.c:42:    memmove(b->data, addr, BSIZE);
+kernel/ramdisk.c:43:    b->flags |= B_VALID;
+kernel/riscv.h:18:#define MSTATUS_MIE (1L << 3)    // machine-mode interrupt enable.
+kernel/riscv.h:98:// Machine-mode Interrupt Enable
+kernel/riscv.h:163:// Supervisor Trap-Vector Base Address
+kernel/riscv.h:179:// Machine-mode interrupt vector
+kernel/riscv.h:244:// Machine-mode Counter-Enable
+kernel/riscv.h:259:// machine-mode cycle counter
+kernel/riscv.h:338:#define PGROUNDUP(sz)  (((sz)+PGSIZE-1) & ~(PGSIZE-1))
+kernel/riscv.h:339:#define PGROUNDDOWN(a) (((a)) & ~(PGSIZE-1))
+kernel/riscv.h:354:// extract the three 9-bit page table indices from a virtual address.
+kernel/riscv.h:361:// Sv39, to avoid having to sign-extend virtual addresses
+kernel/riscv.h:363:#define MAXVA (1L << (9 + 9 + 9 + 12 - 1))
+kernel/sleeplock.c:15:  initlock(&lk->lk, "sleep lock");
+kernel/sleeplock.c:16:  lk->name = name;
+kernel/sleeplock.c:17:  lk->locked = 0;
+kernel/sleeplock.c:18:  lk->pid = 0;
+kernel/sleeplock.c:24:  acquire(&lk->lk);
+kernel/sleeplock.c:25:  while (lk->locked) {
+kernel/sleeplock.c:26:    sleep(lk, &lk->lk);
+kernel/sleeplock.c:28:  lk->locked = 1;
+kernel/sleeplock.c:29:  lk->pid = myproc()->pid;
+kernel/sleeplock.c:30:  release(&lk->lk);
+kernel/sleeplock.c:36:  acquire(&lk->lk);
+kernel/sleeplock.c:37:  lk->locked = 0;
+kernel/sleeplock.c:38:  lk->pid = 0;
+kernel/sleeplock.c:40:  release(&lk->lk);
+kernel/sleeplock.c:48:  acquire(&lk->lk);
+kernel/sleeplock.c:49:  r = lk->locked && (lk->pid == myproc()->pid);
+kernel/sleeplock.c:50:  release(&lk->lk);
+kernel/sleeplock.h:1:// Long-term locks for processes
+kernel/spinlock.c:14:  lk->name = name;
+kernel/spinlock.c:15:  lk->locked = 0;
+kernel/spinlock.c:16:  lk->cpu = 0;
+kernel/spinlock.c:28:  // On RISC-V, sync_lock_test_and_set turns into an atomic swap:
+kernel/spinlock.c:30:  //   s1 = &lk->locked
+kernel/spinlock.c:32:  while(__sync_lock_test_and_set(&lk->locked, 1) != 0)
+kernel/spinlock.c:38:  // On RISC-V, this emits a fence instruction.
+kernel/spinlock.c:42:  lk->cpu = mycpu();
+kernel/spinlock.c:52:  lk->cpu = 0;
+kernel/spinlock.c:59:  // On RISC-V, this emits a fence instruction.
+kernel/spinlock.c:62:  // Release the lock, equivalent to lk->locked = 0.
+kernel/spinlock.c:66:  // On RISC-V, sync_lock_release turns into an atomic swap:
+kernel/spinlock.c:67:  //   s1 = &lk->locked
+kernel/spinlock.c:69:  __sync_lock_release(&lk->locked);
+kernel/spinlock.c:80:  r = (lk->locked && lk->cpu == mycpu());
+kernel/spinlock.c:94:  if(mycpu()->noff == 0)
+kernel/spinlock.c:95:    mycpu()->intena = old;
+kernel/spinlock.c:96:  mycpu()->noff += 1;
+kernel/spinlock.c:104:    panic("pop_off - interruptible");
+kernel/spinlock.c:105:  if(c->noff < 1)
+kernel/spinlock.c:107:  c->noff -= 1;
+kernel/spinlock.c:108:  if(c->noff == 0 && c->intena)
+kernel/start.c:13:// a scratch area per CPU for machine-mode timer interrupts.
+kernel/start.c:16:// assembly code in kernelvec.S for machine-mode timer interrupt.
+kernel/start.c:30:  // requires gcc -mcmodel=medany
+kernel/start.c:81:  // set the machine-mode trap handler.
+kernel/start.c:84:  // enable machine-mode interrupts.
+kernel/start.c:87:  // enable machine-mode timer interrupts.
+kernel/string.c:21:  while(n-- > 0){
+kernel/string.c:23:      return *s1 - *s2;
+kernel/string.c:44:    while(n-- > 0)
+kernel/string.c:45:      *--d = *--s;
+kernel/string.c:47:    while(n-- > 0)
+kernel/string.c:64:    n--, p++, q++;
+kernel/string.c:67:  return (uchar)*p - (uchar)*q;
+kernel/string.c:76:  while(n-- > 0 && (*s++ = *t++) != 0)
+kernel/string.c:78:  while(n-- > 0)
+kernel/string.c:83:// Like strncpy but guaranteed to NUL-terminate.
+kernel/string.c:92:  while(--n > 0 && (*s++ = *t++) != 0)
+kernel/syscall.c:15:  if(addr >= p->sz || addr+sizeof(uint64) > p->sz) // both tests needed, in case of overflow
+kernel/syscall.c:16:    return -1;
+kernel/syscall.c:17:  if(copyin(p->pagetable, (char *)ip, addr, sizeof(*ip)) != 0)
+kernel/syscall.c:18:    return -1;
+kernel/syscall.c:22:// Fetch the nul-terminated string at addr from the current process.
+kernel/syscall.c:23:// Returns length of string, not including nul, or -1 for error.
+kernel/syscall.c:28:  if(copyinstr(p->pagetable, buf, addr, max) < 0)
+kernel/syscall.c:29:    return -1;
+kernel/syscall.c:39:    return p->trapframe->a0;
+kernel/syscall.c:41:    return p->trapframe->a1;
+kernel/syscall.c:43:    return p->trapframe->a2;
+kernel/syscall.c:45:    return p->trapframe->a3;
+kernel/syscall.c:47:    return p->trapframe->a4;
+kernel/syscall.c:49:    return p->trapframe->a5;
+kernel/syscall.c:52:  return -1;
+kernel/syscall.c:55:// Fetch the nth 32-bit system call argument.
+kernel/syscall.c:71:// Fetch the nth word-sized system call argument as a null-terminated string.
+kernel/syscall.c:73:// Returns string length if OK (including nul), -1 if error.
+kernel/syscall.c:137:  num = p->trapframe->a7;
+kernel/syscall.c:140:    // and store its return value in p->trapframe->a0
+kernel/syscall.c:141:    p->trapframe->a0 = syscalls[num]();
+kernel/syscall.c:144:            p->pid, p->name, num);
+kernel/syscall.c:145:    p->trapframe->a0 = -1;
+kernel/sysfile.c:2:// File-system system calls.
+kernel/sysfile.c:19:// Fetch the nth word-sized system call argument as a file descriptor
+kernel/sysfile.c:28:  if(fd < 0 || fd >= NOFILE || (f=myproc()->ofile[fd]) == 0)
+kernel/sysfile.c:29:    return -1;
+kernel/sysfile.c:46:    if(p->ofile[fd] == 0){
+kernel/sysfile.c:47:      p->ofile[fd] = f;
+kernel/sysfile.c:51:  return -1;
+kernel/sysfile.c:61:    return -1;
+kernel/sysfile.c:63:    return -1;
+kernel/sysfile.c:78:    return -1;
+kernel/sysfile.c:92:    return -1;
+kernel/sysfile.c:104:    return -1;
+kernel/sysfile.c:105:  myproc()->ofile[fd] = 0;
+kernel/sysfile.c:118:    return -1;
+kernel/sysfile.c:130:    return -1;
+kernel/sysfile.c:135:    return -1;
+kernel/sysfile.c:139:  if(ip->type == T_DIR){
+kernel/sysfile.c:142:    return -1;
+kernel/sysfile.c:145:  ip->nlink++;
+kernel/sysfile.c:152:  if(dp->dev != ip->dev || dirlink(dp, name, ip->inum) < 0){
+kernel/sysfile.c:165:  ip->nlink--;
+kernel/sysfile.c:169:  return -1;
+kernel/sysfile.c:179:  for(off=2*sizeof(de); off<dp->size; off+=sizeof(de)){
+kernel/sysfile.c:197:    return -1;
+kernel/sysfile.c:202:    return -1;
+kernel/sysfile.c:215:  if(ip->nlink < 1)
+kernel/sysfile.c:217:  if(ip->type == T_DIR && !isdirempty(ip)){
+kernel/sysfile.c:225:  if(ip->type == T_DIR){
+kernel/sysfile.c:226:    dp->nlink--;
+kernel/sysfile.c:231:  ip->nlink--;
+kernel/sysfile.c:242:  return -1;
+kernel/sysfile.c:259:    if(type == T_FILE && (ip->type == T_FILE || ip->type == T_DEVICE))
+kernel/sysfile.c:265:  if((ip = ialloc(dp->dev, type)) == 0){
+kernel/sysfile.c:271:  ip->major = major;
+kernel/sysfile.c:272:  ip->minor = minor;
+kernel/sysfile.c:273:  ip->nlink = 1;
+kernel/sysfile.c:277:    // No ip->nlink++ for ".": avoid cyclic ref count.
+kernel/sysfile.c:278:    if(dirlink(ip, ".", ip->inum) < 0 || dirlink(ip, "..", dp->inum) < 0)
+kernel/sysfile.c:282:  if(dirlink(dp, name, ip->inum) < 0)
+kernel/sysfile.c:287:    dp->nlink++;  // for ".."
+kernel/sysfile.c:296:  // something went wrong. de-allocate ip.
+kernel/sysfile.c:297:  ip->nlink = 0;
+kernel/sysfile.c:315:    return -1;
+kernel/sysfile.c:323:      return -1;
+kernel/sysfile.c:328:      return -1;
+kernel/sysfile.c:331:    if(ip->type == T_DIR && omode != O_RDONLY){
+kernel/sysfile.c:334:      return -1;
+kernel/sysfile.c:338:  if(ip->type == T_DEVICE && (ip->major < 0 || ip->major >= NDEV)){
+kernel/sysfile.c:341:    return -1;
+kernel/sysfile.c:349:    return -1;
+kernel/sysfile.c:352:  if(ip->type == T_DEVICE){
+kernel/sysfile.c:353:    f->type = FD_DEVICE;
+kernel/sysfile.c:354:    f->major = ip->major;
+kernel/sysfile.c:356:    f->type = FD_INODE;
+kernel/sysfile.c:357:    f->off = 0;
+kernel/sysfile.c:359:  f->ip = ip;
+kernel/sysfile.c:360:  f->readable = !(omode & O_WRONLY);
+kernel/sysfile.c:361:  f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
+kernel/sysfile.c:363:  if((omode & O_TRUNC) && ip->type == T_FILE){
+kernel/sysfile.c:382:    return -1;
+kernel/sysfile.c:402:    return -1;
+kernel/sysfile.c:419:    return -1;
+kernel/sysfile.c:422:  if(ip->type != T_DIR){
+kernel/sysfile.c:425:    return -1;
+kernel/sysfile.c:428:  iput(p->cwd);
+kernel/sysfile.c:430:  p->cwd = ip;
+kernel/sysfile.c:443:    return -1;
+kernel/sysfile.c:474:  return -1;
+kernel/sysfile.c:487:    return -1;
+kernel/sysfile.c:488:  fd0 = -1;
+kernel/sysfile.c:491:      p->ofile[fd0] = 0;
+kernel/sysfile.c:494:    return -1;
+kernel/sysfile.c:496:  if(copyout(p->pagetable, fdarray, (char*)&fd0, sizeof(fd0)) < 0 ||
+kernel/sysfile.c:497:     copyout(p->pagetable, fdarray+sizeof(fd0), (char *)&fd1, sizeof(fd1)) < 0){
+kernel/sysfile.c:498:    p->ofile[fd0] = 0;
+kernel/sysfile.c:499:    p->ofile[fd1] = 0;
+kernel/sysfile.c:502:    return -1;
+kernel/sysproc.c:21:  return myproc()->pid;
+kernel/sysproc.c:45:  addr = myproc()->sz;
+kernel/sysproc.c:47:    return -1;
+kernel/sysproc.c:62:  while(ticks - ticks0 < n){
+kernel/sysproc.c:65:      return -1;
+kernel/trampoline.S:2:        # low-level code to handle traps from user space into
+kernel/trampoline.S:34:        # each process has a separate p->trapframe memory area,
+kernel/trampoline.S:71:	# save the user a0 in p->trapframe->a0
+kernel/trampoline.S:75:        # initialize kernel stack pointer, from p->trapframe->kernel_sp
+kernel/trampoline.S:78:        # make tp hold the current hartid, from p->trapframe->kernel_hartid
+kernel/trampoline.S:81:        # load the address of usertrap(), from p->trapframe->kernel_trap
+kernel/trampoline.S:84:        # fetch the kernel page table address, from p->trapframe->kernel_satp.
+kernel/trampoline.S:94:        # flush now-stale user entries from the TLB.
+kernel/trap.c:51:  p->trapframe->epc = r_sepc();
+kernel/trap.c:57:      exit(-1);
+kernel/trap.c:61:    p->trapframe->epc += 4;
+kernel/trap.c:71:    printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
+kernel/trap.c:77:    exit(-1);
+kernel/trap.c:100:  uint64 trampoline_uservec = TRAMPOLINE + (uservec - trampoline);
+kernel/trap.c:105:  p->trapframe->kernel_satp = r_satp();         // kernel page table
+kernel/trap.c:106:  p->trapframe->kernel_sp = p->kstack + PGSIZE; // process's kernel stack
+kernel/trap.c:107:  p->trapframe->kernel_trap = (uint64)usertrap;
+kernel/trap.c:108:  p->trapframe->kernel_hartid = r_tp();         // hartid for cpuid()
+kernel/trap.c:120:  w_sepc(p->trapframe->epc);
+kernel/trap.c:123:  uint64 satp = MAKE_SATP(p->pagetable);
+kernel/trap.c:128:  uint64 trampoline_userret = TRAMPOLINE + (userret - trampoline);
+kernel/trap.c:154:  if(which_dev == 2 && myproc() != 0 && myproc()->state == RUNNING)
+kernel/trap.c:205:    // software interrupt from a machine-mode timer interrupt,
+kernel/uart.c:2:// low-level driver routines for 16550a UART.
+kernel/uart.c:13:// the UART control registers are memory-mapped
+kernel/uart.c:67:  // leave set-baud mode,
+kernel/uart.c:132:// called from both the top- and bottom-half.
+kernel/uart.c:160:// return -1 if none is waiting.
+kernel/uart.c:168:    return -1;
+kernel/uart.c:181:    if(c == -1)
+kernel/virtio.h:7:// https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.pdf
+kernel/virtio.h:18:#define VIRTIO_MMIO_QUEUE_SEL		0x030 // select queue, write-only
+kernel/virtio.h:19:#define VIRTIO_MMIO_QUEUE_NUM_MAX	0x034 // max size of current queue, read-only
+kernel/virtio.h:20:#define VIRTIO_MMIO_QUEUE_NUM		0x038 // size of current queue, write-only
+kernel/virtio.h:22:#define VIRTIO_MMIO_QUEUE_NOTIFY	0x050 // write-only
+kernel/virtio.h:23:#define VIRTIO_MMIO_INTERRUPT_STATUS	0x060 // read-only
+kernel/virtio.h:24:#define VIRTIO_MMIO_INTERRUPT_ACK	0x064 // write-only
+kernel/virtio.h:26:#define VIRTIO_MMIO_QUEUE_DESC_LOW	0x080 // physical address for descriptor table, write-only
+kernel/virtio.h:28:#define VIRTIO_MMIO_DRIVER_DESC_LOW	0x090 // physical address for available ring, write-only
+kernel/virtio.h:30:#define VIRTIO_MMIO_DEVICE_DESC_LOW	0x0a0 // physical address for used ring, write-only
+kernel/virtio.h:40:#define VIRTIO_BLK_F_RO              5	/* Disk is read-only */
+kernel/virtio.h:91:// the block, and a one-byte status.
+kernel/virtio_disk.c:5:// qemu ... -drive file=fs.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+kernel/virtio_disk.c:41:  // our own book-keeping.
+kernel/virtio_disk.c:45:  // track info about in-flight operations,
+kernel/virtio_disk.c:54:  // one-for-one with descriptors, for convenience.
+kernel/virtio_disk.c:101:  // re-read status to ensure FEATURES_OK is set.
+kernel/virtio_disk.c:155:// find a free descriptor, mark it non-free, return its index.
+kernel/virtio_disk.c:165:  return -1;
+kernel/virtio_disk.c:209:      return -1;
+kernel/virtio_disk.c:218:  uint64 sector = b->blockno * (BSIZE / 512);
+kernel/virtio_disk.c:224:  // data, one for a 1-byte status result.
+kernel/virtio_disk.c:236:  // qemu's virtio-blk.c reads them.
+kernel/virtio_disk.c:241:    buf0->type = VIRTIO_BLK_T_OUT; // write the disk
+kernel/virtio_disk.c:243:    buf0->type = VIRTIO_BLK_T_IN; // read the disk
+kernel/virtio_disk.c:244:  buf0->reserved = 0;
+kernel/virtio_disk.c:245:  buf0->sector = sector;
+kernel/virtio_disk.c:252:  disk.desc[idx[1]].addr = (uint64) b->data;
+kernel/virtio_disk.c:255:    disk.desc[idx[1]].flags = 0; // device reads b->data
+kernel/virtio_disk.c:257:    disk.desc[idx[1]].flags = VRING_DESC_F_WRITE; // device writes b->data
+kernel/virtio_disk.c:268:  b->disk = 1;
+kernel/virtio_disk.c:272:  disk.avail->ring[disk.avail->idx % NUM] = idx[0];
+kernel/virtio_disk.c:277:  disk.avail->idx += 1; // not % NUM ...
+kernel/virtio_disk.c:284:  while(b->disk == 1) {
+kernel/virtio_disk.c:309:  // the device increments disk.used->idx when it
+kernel/virtio_disk.c:312:  while(disk.used_idx != disk.used->idx){
+kernel/virtio_disk.c:314:    int id = disk.used->ring[disk.used_idx % NUM].id;
+kernel/virtio_disk.c:320:    b->disk = 0;   // disk is done with buf
+kernel/vm.c:18:// Make a direct-map page table for the kernel.
+kernel/vm.c:36:  // map kernel text executable and read-only.
+kernel/vm.c:37:  kvmmap(kpgtbl, KERNBASE, KERNBASE, (uint64)etext-KERNBASE, PTE_R | PTE_X);
+kernel/vm.c:40:  kvmmap(kpgtbl, (uint64)etext, (uint64)etext, PHYSTOP-(uint64)etext, PTE_R | PTE_W);
+kernel/vm.c:75:// create any required page-table pages.
+kernel/vm.c:77:// The risc-v Sv39 scheme has three levels of page-table
+kernel/vm.c:78:// pages. A page-table page contains 512 64-bit PTEs.
+kernel/vm.c:79:// A 64-bit virtual address is split into five fields:
+kernel/vm.c:80://   39..63 -- must be zero.
+kernel/vm.c:81://   30..38 -- 9 bits of level-2 index.
+kernel/vm.c:82://   21..29 -- 9 bits of level-1 index.
+kernel/vm.c:83://   12..20 -- 9 bits of level-0 index.
+kernel/vm.c:84://    0..11 -- 12 bits of byte offset within the page.
+kernel/vm.c:91:  for(int level = 2; level > 0; level--) {
+kernel/vm.c:140:// va and size MUST be page-aligned.
+kernel/vm.c:141:// Returns 0 on success, -1 if walk() couldn't
+kernel/vm.c:142:// allocate a needed page-table page.
+kernel/vm.c:159:  last = va + size - PGSIZE;
+kernel/vm.c:162:      return -1;
+kernel/vm.c:175:// page-aligned. The mappings must exist.
+kernel/vm.c:259:// newsz.  oldsz and newsz need not be page-aligned, nor does newsz
+kernel/vm.c:269:    int npages = (PGROUNDUP(oldsz) - PGROUNDUP(newsz)) / PGSIZE;
+kernel/vm.c:276:// Recursively free page-table pages.
+kernel/vm.c:285:      // this PTE points to a lower-level page table.
+kernel/vm.c:297:// then free page-table pages.
+kernel/vm.c:310:// returns 0 on success, -1 on failure.
+kernel/vm.c:339:  return -1;
+kernel/vm.c:357:// Return 0 on success, -1 on error.
+kernel/vm.c:367:      return -1;
+kernel/vm.c:371:      return -1;
+kernel/vm.c:373:    n = PGSIZE - (dstva - va0);
+kernel/vm.c:376:    memmove((void *)(pa0 + (dstva - va0)), src, n);
+kernel/vm.c:378:    len -= n;
+kernel/vm.c:387:// Return 0 on success, -1 on error.
+kernel/vm.c:397:      return -1;
+kernel/vm.c:398:    n = PGSIZE - (srcva - va0);
+kernel/vm.c:401:    memmove(dst, (void *)(pa0 + (srcva - va0)), n);
+kernel/vm.c:403:    len -= n;
+kernel/vm.c:410:// Copy a null-terminated string from user to kernel.
+kernel/vm.c:413:// Return 0 on success, -1 on error.
+kernel/vm.c:424:      return -1;
+kernel/vm.c:425:    n = PGSIZE - (srcva - va0);
+kernel/vm.c:429:    char *p = (char *) (pa0 + (srcva - va0));
+kernel/vm.c:438:      --n;
+kernel/vm.c:439:      --max;
+kernel/vm.c:449:    return -1;
+mkfs/mkfs.c:94:  nblocks = FSSIZE - nmeta;
+mkfs/mkfs.c:278:      if(indirect[fbn - NDIRECT] == 0){
+mkfs/mkfs.c:279:        indirect[fbn - NDIRECT] = xint(freeblock++);
+mkfs/mkfs.c:282:      x = xint(indirect[fbn-NDIRECT]);
+mkfs/mkfs.c:284:    n1 = min(n, (fbn + 1) * BSIZE - off);
+mkfs/mkfs.c:286:    bcopy(p, buf + off - (fbn * BSIZE), n1);
+mkfs/mkfs.c:288:    n -= n1;
+notxv6/barrier.c:71:    exit(-1);
+notxv6/ph.c:34:  e->key = key;
+notxv6/ph.c:35:  e->value = value;
+notxv6/ph.c:36:  e->next = n;
+notxv6/ph.c:49:  for (e = table[i]; e != 0; e = e->next) {
+notxv6/ph.c:50:    if (e->key == key)
+notxv6/ph.c:55:    e->value = value;
+notxv6/ph.c:72:  for (e = table[i]; e != 0; e = e->next) {
+notxv6/ph.c:73:    if (e->key == key) break;
+notxv6/ph.c:116:    exit(-1);
+notxv6/ph.c:142:         NKEYS, t1 - t0, NKEYS / (t1 - t0));
+notxv6/ph.c:157:         NKEYS*nthread, t1 - t0, (NKEYS*nthread) / (t1 - t0));
+user/forktest.c:36:  for(; n > 0; n--){
+user/forktest.c:43:  if(wait(0) != -1){
+user/grep.c:18:  while((n = read(fd, buf+m, sizeof(buf)-m-1)) > 0){
+user/grep.c:26:        write(1, p, q+1 - p);
+user/grep.c:31:      m -= p - buf;
+user/grind.c:20: * Compute x = (7^5 * x) mod (2^31 - 1)
+user/grind.c:22: *      (2^31 - 1) = 127773 * (7^5) + 2836
+user/grind.c:33:    x = 16807 * lo - 2836 * hi;
+user/grind.c:37:    x--;
+user/grind.c:53:  int fd = -1;
+user/grind.c:131:        sbrk(-(sbrk(0) - break0));
+user/grind.c:197:      // should always succeed. check that there are free i-nodes,
+user/grind.c:218:        printf("grind: fstat reports crazy i-number %d\n", st.ino);
+user/grind.c:324:  int st1 = -1;
+user/grind.c:330:  int st2 = -1;
+user/init.c:1:// init: The initial user-level program
+user/ls.c:14:  for(p=path+strlen(path); p >= path && *p != '/'; p--)
+user/ls.c:18:  // Return blank-padded name.
+user/ls.c:22:  memset(buf+strlen(p), ' ', DIRSIZ-strlen(p));
+user/printf.c:25:    x = -xx;
+user/printf.c:35:    buf[i++] = '-';
+user/printf.c:37:  while(--i >= 0)
+user/printf.c:47:    putc(fd, digits[x >> (sizeof(uint64) * 8 - 4)]);
+user/sh.c:71:  switch(cmd->type){
+user/sh.c:77:    if(ecmd->argv[0] == 0)
+user/sh.c:79:    exec(ecmd->argv[0], ecmd->argv);
+user/sh.c:80:    fprintf(2, "exec %s failed\n", ecmd->argv[0]);
+user/sh.c:85:    close(rcmd->fd);
+user/sh.c:86:    if(open(rcmd->file, rcmd->mode) < 0){
+user/sh.c:87:      fprintf(2, "open %s failed\n", rcmd->file);
+user/sh.c:90:    runcmd(rcmd->cmd);
+user/sh.c:96:      runcmd(lcmd->left);
+user/sh.c:98:    runcmd(lcmd->right);
+user/sh.c:110:      runcmd(pcmd->left);
+user/sh.c:117:      runcmd(pcmd->right);
+user/sh.c:128:      runcmd(bcmd->cmd);
+user/sh.c:141:    return -1;
+user/sh.c:163:      buf[strlen(buf)-1] = 0;  // chop \n
+user/sh.c:188:  if(pid == -1)
+user/sh.c:203:  cmd->type = EXEC;
+user/sh.c:214:  cmd->type = REDIR;
+user/sh.c:215:  cmd->cmd = subcmd;
+user/sh.c:216:  cmd->file = file;
+user/sh.c:217:  cmd->efile = efile;
+user/sh.c:218:  cmd->mode = mode;
+user/sh.c:219:  cmd->fd = fd;
+user/sh.c:230:  cmd->type = PIPE;
+user/sh.c:231:  cmd->left = left;
+user/sh.c:232:  cmd->right = right;
+user/sh.c:243:  cmd->type = LIST;
+user/sh.c:244:  cmd->left = left;
+user/sh.c:245:  cmd->right = right;
+user/sh.c:256:  cmd->type = BACK;
+user/sh.c:257:  cmd->cmd = subcmd;
+user/sh.c:410:    panic("syntax - missing )");
+user/sh.c:437:    cmd->argv[argc] = q;
+user/sh.c:438:    cmd->eargv[argc] = eq;
+user/sh.c:444:  cmd->argv[argc] = 0;
+user/sh.c:445:  cmd->eargv[argc] = 0;
+user/sh.c:449:// NUL-terminate all the counted strings.
+user/sh.c:463:  switch(cmd->type){
+user/sh.c:466:    for(i=0; ecmd->argv[i]; i++)
+user/sh.c:467:      *ecmd->eargv[i] = 0;
+user/sh.c:472:    nulterminate(rcmd->cmd);
+user/sh.c:473:    *rcmd->efile = 0;
+user/sh.c:478:    nulterminate(pcmd->left);
+user/sh.c:479:    nulterminate(pcmd->right);
+user/sh.c:484:    nulterminate(lcmd->left);
+user/sh.c:485:    nulterminate(lcmd->right);
+user/sh.c:490:    nulterminate(bcmd->cmd);
+user/ulib.c:33:  return (uchar)*p - (uchar)*q;
+user/ulib.c:92:    return -1;
+user/ulib.c:105:    n = n*10 + *s++ - '0';
+user/ulib.c:118:    while(n-- > 0)
+user/ulib.c:123:    while(n-- > 0)
+user/ulib.c:124:      *--dst = *--src;
+user/ulib.c:133:  while (n-- > 0) {
+user/ulib.c:135:      return *p1 - *p2;
+user/umalloc.c:29:  bp = (Header*)ap - 1;
+user/umalloc.c:30:  for(p = freep; !(bp > p && bp < p->s.ptr); p = p->s.ptr)
+user/umalloc.c:31:    if(p >= p->s.ptr && (bp > p || bp < p->s.ptr))
+user/umalloc.c:33:  if(bp + bp->s.size == p->s.ptr){
+user/umalloc.c:34:    bp->s.size += p->s.ptr->s.size;
+user/umalloc.c:35:    bp->s.ptr = p->s.ptr->s.ptr;
+user/umalloc.c:37:    bp->s.ptr = p->s.ptr;
+user/umalloc.c:38:  if(p + p->s.size == bp){
+user/umalloc.c:39:    p->s.size += bp->s.size;
+user/umalloc.c:40:    p->s.ptr = bp->s.ptr;
+user/umalloc.c:42:    p->s.ptr = bp;
+user/umalloc.c:55:  if(p == (char*)-1)
+user/umalloc.c:58:  hp->s.size = nu;
+user/umalloc.c:69:  nunits = (nbytes + sizeof(Header) - 1)/sizeof(Header) + 1;
+user/umalloc.c:74:  for(p = prevp->s.ptr; ; prevp = p, p = p->s.ptr){
+user/umalloc.c:75:    if(p->s.size >= nunits){
+user/umalloc.c:76:      if(p->s.size == nunits)
+user/umalloc.c:77:        prevp->s.ptr = p->s.ptr;
+user/umalloc.c:79:        p->s.size -= nunits;
+user/umalloc.c:80:        p += p->s.size;
+user/umalloc.c:81:        p->s.size = nunits;
+user/usertests.c:25:// Section with tests that run fairly quickly.  Use -q if you want to
+user/usertests.c:26:// run just those.  With -q usertests also runs the ones that take a
+user/usertests.c:47:      printf("write(fd, %p, 8192) returned %d, not -1\n", addr, n);
+user/usertests.c:55:      printf("write(1, %p, 8192) returned %d, not -1 or 0\n", addr, n);
+user/usertests.c:66:      printf("write(pipe, %p, 8192) returned %d, not -1 or 0\n", addr, n);
+user/usertests.c:91:      printf("read(fd, %p, 8192) returned %d, not -1 or 0\n", addr, n);
+user/usertests.c:108:      printf("read(pipe, %p, 8192) returned %d, not -1 or 0\n", addr, n);
+user/usertests.c:127:      printf("open(%p) returned %d, not -1\n", addr, fd);
+user/usertests.c:146:  if(ret != -1){
+user/usertests.c:147:    printf("unlink(%s) returned %d, not -1\n", b, ret);
+user/usertests.c:152:  if(fd != -1){
+user/usertests.c:153:    printf("open(%s) returned %d, not -1\n", b, fd);
+user/usertests.c:158:  if(ret != -1){
+user/usertests.c:159:    printf("link(%s, %s) returned %d, not -1\n", b, b, ret);
+user/usertests.c:165:  if(ret != -1){
+user/usertests.c:166:    printf("exec(%s) returned %d, not -1\n", b, fd);
+user/usertests.c:182:    if(ret != -1){
+user/usertests.c:183:      printf("exec(echo, BIG) returned %d, not -1\n", fd);
+user/usertests.c:204:    sbrk(PGSIZE - (top % PGSIZE));
+user/usertests.c:212:  char *b = (char *) (top - 1);
+user/usertests.c:216:  if(ret != -1){
+user/usertests.c:217:    printf("unlink(%s) returned %d, not -1\n", b, ret);
+user/usertests.c:222:  if(fd != -1){
+user/usertests.c:223:    printf("open(%s) returned %d, not -1\n", b, fd);
+user/usertests.c:228:  if(ret != -1){
+user/usertests.c:229:    printf("link(%s, %s) returned %d, not -1\n", b, b, ret);
+user/usertests.c:235:  if(ret != -1){
+user/usertests.c:236:    printf("exec(%s) returned %d, not -1\n", b, fd);
+user/usertests.c:255:  if ((uint64) sbrk(-8192) ==  0xffffffffffffffffLL) {
+user/usertests.c:267:    printf("write(fd, %p, 1024) returned %d, not -1\n", a+4096, n);
+user/usertests.c:280:    printf("read(fd, %p, 10) returned %d, not -1\n", a+4096, n);
+user/usertests.c:359:  if(n != -1){
+user/usertests.c:360:    printf("%s: write returned %d, expected -1\n", s, n);
+user/usertests.c:423:// does chdir() call iput(p->cwd) in a transaction?
+user/usertests.c:445:// does exit() call iput(p->cwd) in a transaction?
+user/usertests.c:480://      return -1;
+user/usertests.c:609:      if(n == MAXFILE - 1){
+user/usertests.c:685:  unlink("echo-ok");
+user/usertests.c:693:    fd = open("echo-ok", O_CREATE|O_WRONLY);
+user/usertests.c:714:  fd = open("echo-ok", O_RDONLY);
+user/usertests.c:723:  unlink("echo-ok");
+user/usertests.c:789:// test if child is killed (status = -1)
+user/usertests.c:810:    if(xst != -1) {
+user/usertests.c:811:       printf("%s: status should be -1\n", s);
+user/usertests.c:1027:// regression test. does reparent() violate the parent-then-child
+user/usertests.c:1030:// release" due to exit() releasing a different p->parent->lock than
+user/usertests.c:1080:    if(xstatus == -1){
+user/usertests.c:1381:    printf("%s: link non-existent succeeded! oops\n", s);
+user/usertests.c:1439:      i = de.name[1] - '0';
+user/usertests.c:1542:    printf("%s: unlink dd (non-empty dir) succeeded!\n", s);
+user/usertests.c:1688:    printf("%s: unlink non-empty dd succeeded!\n", s);
+user/usertests.c:1767:    if(buf[0] != i/2 || buf[SZ/2-1] != i/2){
+user/usertests.c:1983:  for(; n > 0; n--){
+user/usertests.c:1990:  if(wait(0) != -1){
+user/usertests.c:2051:    printf("%s: sbrk test failed post-fork\n", s);
+user/usertests.c:2071:  amt = BIG - (uint64)a;
+user/usertests.c:2083:  lastaddr = (char*) (BIG-1);
+user/usertests.c:2086:  // can one de-allocate?
+user/usertests.c:2088:  c = sbrk(-PGSIZE);
+user/usertests.c:2094:  if(c != a - PGSIZE){
+user/usertests.c:2099:  // can one re-allocate that page?
+user/usertests.c:2103:    printf("%s: sbrk re-allocation failed, a %x c %x\n", s, a, c);
+user/usertests.c:2108:    printf("%s: sbrk de-allocation didn't really deallocate\n", s);
+user/usertests.c:2113:  c = sbrk(-(sbrk(0) - oldbrk));
+user/usertests.c:2139:    if(xstatus != -1)  // did kernel kill child?
+user/usertests.c:2163:    if(xstatus != -1)  // did kernel kill child?
+user/usertests.c:2188:      sbrk(BIG - (uint64)sbrk(0));
+user/usertests.c:2193:    if(pids[i] != -1)
+user/usertests.c:2201:    if(pids[i] == -1)
+user/usertests.c:2233:  if(xstatus != -1 && xstatus != 2)
+user/usertests.c:2275:    if(link("nosuchfile", (char*)p) != -1){
+user/usertests.c:2305:  unlink("bigarg-ok");
+user/usertests.c:2310:    for(i = 0; i < MAXARG-1; i++)
+user/usertests.c:2312:    args[MAXARG-1] = 0;
+user/usertests.c:2314:    fd = open("bigarg-ok", O_CREATE);
+user/usertests.c:2325:  fd = open("bigarg-ok", 0);
+user/usertests.c:2380:    nfiles--;
+user/usertests.c:2394:  read(fd, sbrk(0) - 1, -1);
+user/usertests.c:2409:    sp -= PGSIZE;
+user/usertests.c:2418:  if(xstatus == -1)  // kernel killed child?
+user/usertests.c:2441:  if(xstatus == -1)  // kernel killed child?
+user/usertests.c:2476:    // would not adjust p->sz correctly in this case,
+user/usertests.c:2478:    sbrk(-sz);
+user/usertests.c:2494:    sbrk(-(sz - 3500));
+user/usertests.c:2506:    sbrk((10*4096 + 2048) - (uint64)sbrk(0));
+user/usertests.c:2511:    sbrk(-10);
+user/usertests.c:2528:    sbrk(4096 - (top % 4096));
+user/usertests.c:2531:  sbrk(-20);
+user/usertests.c:2533:  char *p = (char *) (top - 64);
+user/usertests.c:2547:// does sbrk handle signed int32 wrap-around with
+user/usertests.c:2554:  *(top-1) = *(top-1) + 1;
+user/usertests.c:2795:        *(char*)(a + 4096 - 1) = 1;
+user/usertests.c:2801:        sbrk(-4096);
+user/usertests.c:2969:  for (struct test *t = tests; t->s != 0; t++) {
+user/usertests.c:2970:    if((justone == 0) || strcmp(t->s, justone) == 0) {
+user/usertests.c:2971:      if(!run(t->f, t->s)){
+user/usertests.c:3016:      *(char *)(a + 4096 - 1) = 1;
+user/usertests.c:3070:      printf("FAILED -- lost some free pages %d (out of %d)\n", free1, free0);
+user/usertests.c:3086:  if(argc == 2 && strcmp(argv[1], "-q") == 0){
+user/usertests.c:3088:  } else if(argc == 2 && strcmp(argv[1], "-c") == 0){
+user/usertests.c:3090:  } else if(argc == 2 && strcmp(argv[1], "-C") == 0){
+user/usertests.c:3092:  } else if(argc == 2 && argv[1][0] != '-'){
+user/usertests.c:3095:    printf("Usage: usertests [-c] [-C] [-q] [testname]\n");
+user/usys.pl:1:#!/usr/bin/perl -w
+user/usys.pl:5:print "# generated by usys.pl - do not edit\n";
+user/uthread.c:34:  current_thread->state = RUNNING;
+user/uthread.c:48:    if(t->state == RUNNABLE) {
+user/uthread.c:57:    exit(-1);
+user/uthread.c:61:    next_thread->state = RUNNING;
+user/uthread.c:68:    thread_switch(&t->context, &next_thread->context);
+user/uthread.c:79:    if (t->state == FREE) break;
+user/uthread.c:81:  t->state = RUNNABLE;
+user/uthread.c:83:  t->context.ra = (uint64)func;
+user/uthread.c:84:  t->context.sp = (uint64)t->stack + STACK_SIZE;
+user/uthread.c:90:  current_thread->state = RUNNABLE;
+user/uthread.c:113:  current_thread->state = FREE;
+user/uthread.c:133:  current_thread->state = FREE;
+user/uthread.c:153:  current_thread->state = FREE;
+user/uthread.c:166:  current_thread->state = FREE;
